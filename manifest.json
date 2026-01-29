@@ -1,0 +1,32 @@
+{
+  "name": "Clock It - Photo Journal",
+  "short_name": "Clock It",
+  "description": "Capture your moments, one at a time",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#9333ea",
+  "theme_color": "#9333ea",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["photography", "lifestyle", "social"],
+  "screenshots": [
+    {
+      "src": "screenshot1.png",
+      "sizes": "540x720",
+      "type": "image/png"
+    }
+  ]
+}
