@@ -245,6 +245,17 @@ body {
 
 #google-signin-button {
     margin-bottom: 1rem;
+    display: flex;
+    justify-content: center;
+}
+
+#google-signin-button > div {
+    max-width: 100% !important;
+}
+
+/* Override Google's button width */
+#google-signin-button iframe {
+    max-width: 100% !important;
 }
 
 .login-note {
@@ -935,5 +946,75 @@ body {
 
 .premium-info li {
     margin-bottom: 0.5rem;
+}
+
+/* Reminder Settings Styles */
+.setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 34px;
+    transition: .4s;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 3px;
+    background-color: white;
+    border-radius: 50%;
+    transition: .4s;
+}
+
+input:checked + .toggle-slider {
+    background: linear-gradient(135deg, #1e90ff, #4169e1);
+}
+
+input:checked + .toggle-slider:before {
+    transform: translateX(26px);
+}
+
+.time-picker {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.time-picker select {
+    flex: 1;
+}
+
+.time-picker span {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--text-dark);
 }
 

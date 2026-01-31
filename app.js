@@ -82,9 +82,21 @@ function handleGoogleSignIn(response) {
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(currentUser));
     localStorage.setItem(STORAGE_KEYS.SYNC_ENABLED, 'true');
     
-    showToast('Signed in successfully! 🎉');
+    // Hide login view immediately
+    document.getElementById('login-view')?.classList.remove('active');
+    
+    // Load user data
     loadUserData();
-    showView('home');
+    
+    // Show home view
+    document.getElementById('home-view')?.classList.add('active');
+    currentView = 'home';
+    
+    // Update nav
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('.nav-btn[onclick*="home"]')?.classList.add('active');
+    
+    showToast('Signed in successfully! 🎉');
 }
 
 function parseJwt(token) {
@@ -889,4 +901,337 @@ showView = function(viewName) {
     }
     originalShowView(viewName);
 };
+
+
+// ========== REMINDER SYSTEM INTEGRATION ==========
+
+// Reminder system state
+let reminderSystem = {
+    permission: 'default',
+    reminderEnabled: true,
+    reminderTime: { hour: 20, minute: 0 },
+    frequency: 'daily',
+    weekday: 0,
+    messages: [
+        "Lift your head 😉, it's time to make memories",
+        "📸 Capture this moment before it's gone!",
+        "Your future self will thank you for this photo 💙",
+        "Time to Clock It! What's your vibe today? ✨",
+        "Don't let today slip away - snap a moment! 🌟",
+        "Your memory awaits... Take a photo! 📷",
+        "Psst... it's photo time! Make it count 😊",
+        "Today deserves to be remembered 💫",
+        "Quick! Grab your phone and capture now 📸",
+        "Your story continues... Add today's chapter! 📖"
+    ]
+};
+
+// Initialize reminders
+async function initReminders() {
+    // Check notification permission
+    if ('Notification' in window) {
+        reminderSystem.permission = Notification.permission;
+    }
+    
+    // Load saved settings
+    loadReminderSettings();
+    
+    // Setup event listeners
+    setupReminderListeners();
+    
+    // Update UI
+    updateReminderUI();
+    
+    // Schedule if enabled
+    if (reminderSystem.reminderEnabled && reminderSystem.permission === 'granted') {
+        scheduleNextReminder();
+    }
+}
+
+// Load reminder settings from localStorage
+function loadReminderSettings() {
+    const saved = localStorage.getItem('clockit-reminder-settings');
+    if (saved) {
+        try {
+            const settings = JSON.parse(saved);
+            reminderSystem.reminderTime = settings.reminderTime || { hour: 20, minute: 0 };
+            reminderSystem.reminderEnabled = settings.reminderEnabled !== false;
+            reminderSystem.frequency = settings.frequency || 'daily';
+            reminderSystem.weekday = settings.weekday || 0;
+        } catch (error) {
+            console.error('Failed to load reminder settings:', error);
+        }
+    }
+}
+
+// Save reminder settings
+function saveReminderSettings() {
+    const settings = {
+        reminderTime: reminderSystem.reminderTime,
+        reminderEnabled: reminderSystem.reminderEnabled,
+        frequency: reminderSystem.frequency,
+        weekday: reminderSystem.weekday
+    };
+    localStorage.setItem('clockit-reminder-settings', JSON.stringify(settings));
+}
+
+// Setup reminder event listeners
+function setupReminderListeners() {
+    // Toggle reminders
+    document.getElementById('reminder-toggle')?.addEventListener('change', (e) => {
+        reminderSystem.reminderEnabled = e.target.checked;
+        document.getElementById('reminder-settings-details').style.display = 
+            e.target.checked ? 'block' : 'none';
+        saveReminderSettings();
+        updateReminderInfo();
+        
+        if (e.target.checked && reminderSystem.permission !== 'granted') {
+            requestNotificationPermission();
+        } else if (e.target.checked) {
+            scheduleNextReminder();
+        }
+    });
+    
+    // Time change
+    document.getElementById('reminder-hour')?.addEventListener('change', updateReminderTime);
+    document.getElementById('reminder-minute')?.addEventListener('change', updateReminderTime);
+    
+    // Frequency change
+    document.getElementById('reminder-frequency-select')?.addEventListener('change', (e) => {
+        reminderSystem.frequency = e.target.value;
+        const isWeekly = e.target.value === 'weekly';
+        document.getElementById('weekday-picker').style.display = isWeekly ? 'block' : 'none';
+        saveReminderSettings();
+        updateReminderInfo();
+        scheduleNextReminder();
+    });
+    
+    document.getElementById('reminder-weekday')?.addEventListener('change', (e) => {
+        reminderSystem.weekday = parseInt(e.target.value);
+        saveReminderSettings();
+        updateReminderInfo();
+        scheduleNextReminder();
+    });
+    
+    // Test reminder button
+    document.getElementById('test-reminder-btn')?.addEventListener('click', testReminderNotification);
+}
+
+// Update reminder time
+function updateReminderTime() {
+    const hour = parseInt(document.getElementById('reminder-hour')?.value || 20);
+    const minute = parseInt(document.getElementById('reminder-minute')?.value || 0);
+    reminderSystem.reminderTime = { hour, minute };
+    saveReminderSettings();
+    updateReminderInfo();
+    scheduleNextReminder();
+}
+
+// Update reminder UI with saved settings
+function updateReminderUI() {
+    const hourEl = document.getElementById('reminder-hour');
+    const minuteEl = document.getElementById('reminder-minute');
+    const toggleEl = document.getElementById('reminder-toggle');
+    const frequencyEl = document.getElementById('reminder-frequency-select');
+    
+    if (hourEl) hourEl.value = reminderSystem.reminderTime.hour;
+    if (minuteEl) minuteEl.value = reminderSystem.reminderTime.minute;
+    if (toggleEl) toggleEl.checked = reminderSystem.reminderEnabled;
+    if (frequencyEl) frequencyEl.value = reminderSystem.frequency;
+    
+    if (reminderSystem.frequency === 'weekly') {
+        document.getElementById('weekday-picker').style.display = 'block';
+        document.getElementById('reminder-weekday').value = reminderSystem.weekday;
+    }
+    
+    document.getElementById('reminder-settings-details').style.display = 
+        reminderSystem.reminderEnabled ? 'block' : 'none';
+    
+    updateReminderInfo();
+}
+
+// Update next reminder info text
+function updateReminderInfo() {
+    const textEl = document.getElementById('next-reminder-text');
+    if (!textEl) return;
+    
+    if (!reminderSystem.reminderEnabled) {
+        textEl.textContent = 'Reminders are disabled';
+        return;
+    }
+    
+    const nextTime = getNextReminderTime();
+    const now = new Date();
+    const timeUntil = nextTime - now;
+    
+    const hours = Math.floor(timeUntil / (1000 * 60 * 60));
+    const minutes = Math.floor((timeUntil % (1000 * 60 * 60)) / (1000 * 60));
+    
+    const timeStr = nextTime.toLocaleString('en-US', { 
+        weekday: 'short',
+        month: 'short', 
+        day: 'numeric',
+        hour: 'numeric', 
+        minute: '2-digit' 
+    });
+    
+    if (hours < 24) {
+        textEl.textContent = `Next reminder: ${timeStr} (in ${hours}h ${minutes}m)`;
+    } else {
+        textEl.textContent = `Next reminder: ${timeStr}`;
+    }
+}
+
+// Calculate next reminder time
+function getNextReminderTime() {
+    const now = new Date();
+    const reminder = new Date();
+    
+    reminder.setHours(reminderSystem.reminderTime.hour);
+    reminder.setMinutes(reminderSystem.reminderTime.minute);
+    reminder.setSeconds(0);
+    reminder.setMilliseconds(0);
+
+    // If time has passed today, schedule for tomorrow/next week
+    if (reminder <= now) {
+        if (reminderSystem.frequency === 'daily') {
+            reminder.setDate(reminder.getDate() + 1);
+        } else {
+            // Weekly: find next occurrence of weekday
+            let daysUntilNext = (reminderSystem.weekday - reminder.getDay() + 7) % 7;
+            if (daysUntilNext === 0) daysUntilNext = 7;
+            reminder.setDate(reminder.getDate() + daysUntilNext);
+        }
+    } else if (reminderSystem.frequency === 'weekly') {
+        // Check if today is the right weekday
+        if (reminder.getDay() !== reminderSystem.weekday) {
+            let daysUntilNext = (reminderSystem.weekday - reminder.getDay() + 7) % 7;
+            reminder.setDate(reminder.getDate() + daysUntilNext);
+        }
+    }
+
+    return reminder;
+}
+
+// Schedule next reminder
+let reminderTimeout = null;
+function scheduleNextReminder() {
+    if (!reminderSystem.reminderEnabled || reminderSystem.permission !== 'granted') {
+        return;
+    }
+    
+    // Clear existing
+    if (reminderTimeout) {
+        clearTimeout(reminderTimeout);
+    }
+    
+    const nextTime = getNextReminderTime();
+    const timeUntil = nextTime - new Date();
+    
+    console.log(`Next reminder: ${nextTime.toLocaleString()}`);
+    
+    reminderTimeout = setTimeout(() => {
+        showReminderNotification();
+        setTimeout(() => scheduleNextReminder(), 1000);
+    }, timeUntil);
+}
+
+// Show reminder notification
+async function showReminderNotification() {
+    if (reminderSystem.permission !== 'granted') return;
+    
+    const message = reminderSystem.messages[Math.floor(Math.random() * reminderSystem.messages.length)];
+    
+    try {
+        const registration = await navigator.serviceWorker.ready;
+        await registration.showNotification('Clock It - Time for Memories! 📸', {
+            body: message,
+            icon: '/icon-192.png',
+            badge: '/icon-192.png',
+            image: '/logo.png',
+            vibrate: [200, 100, 200],
+            tag: 'clockit-reminder',
+            requireInteraction: true,
+            actions: [
+                { action: 'capture', title: '📸 Capture Now' },
+                { action: 'later', title: 'Remind Later' }
+            ]
+        });
+    } catch (error) {
+        console.error('Notification error:', error);
+    }
+}
+
+// Request notification permission
+async function requestNotificationPermission() {
+    if (!('Notification' in window)) {
+        showToast('Notifications not supported on this device');
+        return false;
+    }
+    
+    try {
+        const permission = await Notification.requestPermission();
+        reminderSystem.permission = permission;
+        
+        if (permission === 'granted') {
+            showToast('Notifications enabled! 🔔');
+            scheduleNextReminder();
+            return true;
+        } else {
+            showToast('Please enable notifications in your browser settings');
+            return false;
+        }
+    } catch (error) {
+        console.error('Permission request failed:', error);
+        return false;
+    }
+}
+
+// Test reminder notification
+async function testReminderNotification() {
+    if (reminderSystem.permission !== 'granted') {
+        const granted = await requestNotificationPermission();
+        if (!granted) return;
+    }
+    
+    try {
+        const registration = await navigator.serviceWorker.ready;
+        await registration.showNotification('Test Notification 🔔', {
+            body: "This is how your reminders will look! 😊",
+            icon: '/icon-192.png',
+            badge: '/icon-192.png',
+            vibrate: [200, 100, 200],
+            tag: 'clockit-test'
+        });
+        showToast('Test notification sent!');
+    } catch (error) {
+        console.error('Test notification failed:', error);
+        showToast('Failed to send test notification');
+    }
+}
+
+// Initialize reminders when app loads
+setTimeout(() => {
+    initReminders();
+}, 1000);
+
+// Listen for service worker messages
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data && event.data.action === 'open-camera') {
+            document.getElementById('photo-input')?.click();
+        } else if (event.data && event.data.action === 'snooze-reminder') {
+            // Snooze for 1 hour
+            const snoozeTime = new Date();
+            snoozeTime.setHours(snoozeTime.getHours() + 1);
+            const timeUntil = snoozeTime - new Date();
+            
+            setTimeout(() => {
+                showReminderNotification();
+            }, timeUntil);
+            
+            showToast('Reminder snoozed for 1 hour');
+        }
+    });
+}
 
