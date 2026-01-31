@@ -47,7 +47,7 @@ function initGoogleSignIn() {
     // 3. Get your Client ID
     // 4. Replace 'YOUR_CLIENT_ID' below with your actual client ID
     
-    const CLIENT_ID = '266277627226-c6991ph055g8aphgqt3fdknkbqf0re22.apps.googleusercontent.com.apps.googleusercontent.com';
+    const CLIENT_ID = '266277627226-c6991ph055g8aphgqt3fdknkbqf0re22.apps.googleusercontent.com';
     
     window.google?.accounts.id.initialize({
         client_id: CLIENT_ID,
