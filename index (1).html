@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1e90ff">
+    <meta name="description" content="Clock It - Capture your moments, one at a time">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Clock It - Photo Journal</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/png" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+    <!-- Background Pattern -->
+    <div class="background-pattern"></div>
+    <div class="background-overlay"></div>
+
+    <div id="app">
+        <!-- Splash Screen -->
+        <div id="splash-screen" class="splash-screen active">
+            <div class="splash-content">
+                <img src="logo.png" alt="Clock It Logo" class="splash-logo">
+                <div class="splash-loader"></div>
+            </div>
+        </div>
+
+        <!-- Login View -->
+        <div id="login-view" class="view">
+            <div class="login-container">
+                <div class="glass-card login-card">
+                    <img src="logo.png" alt="Clock It" class="login-logo">
+                    <h2 class="login-title">Welcome to Clock It</h2>
+                    <p class="login-subtitle">Capture your moments, sync across devices</p>
+                    
+                    <div id="google-signin-button"></div>
+                    
+                    <button id="continue-local-btn" class="glass-button secondary-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                        Continue Without Sign In
+                    </button>
+                    
+                    <p class="login-note">Sign in with Google to sync your photos across all devices</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Home View -->
+        <div id="home-view" class="view">
+            <div class="app-container">
+                <!-- Header -->
+                <div class="app-header glass-card">
+                    <div class="header-content">
+                        <img src="logo.png" alt="Clock It" class="header-logo">
+                        <button class="glass-button icon-btn hamburger-btn" onclick="toggleSidebar()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <line x1="3" y1="12" x2="21" y2="12"></line>
+                                <line x1="3" y1="6" x2="21" y2="6"></line>
+                                <line x1="3" y1="18" x2="21" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Main Card -->
+                <div class="glass-card main-card">
+                    <div class="card-header">
+                        <h2 id="capture-status">Capture Today's Moment</h2>
+                        <p id="frequency-display">Daily capture mode</p>
+                    </div>
+
+                    <button id="capture-btn" class="glass-button primary-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                            <circle cx="12" cy="13" r="4"></circle>
+                        </svg>
+                        Take Photo
+                    </button>
+                    <input type="file" id="photo-input" accept="image/*" capture="environment" style="display: none;">
+
+                    <button id="upload-btn" class="glass-button secondary-btn upload-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        Upload from Gallery
+                        <span id="upload-count" class="upload-count"></span>
+                    </button>
+                    <input type="file" id="upload-input" accept="image/*" multiple style="display: none;">
+
+                    <div class="stats-grid">
+                        <div class="glass-card stat-card">
+                            <div class="stat-value" id="total-moments">0</div>
+                            <div class="stat-label">Total Moments</div>
+                        </div>
+                        <div class="glass-card stat-card">
+                            <div class="stat-value" id="month-moments">0</div>
+                            <div class="stat-label">This Month</div>
+                        </div>
+                        <div class="glass-card stat-card">
+                            <div class="stat-value" id="year-moments">0</div>
+                            <div class="stat-label">This Year</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Navigation -->
+                <div class="bottom-nav glass-card">
+                    <button class="nav-btn active" onclick="showView('home')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                        </svg>
+                        <span>Home</span>
+                    </button>
+                    <button class="nav-btn" onclick="showView('gallery')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <rect x="3" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="14" width="7" height="7"></rect>
+                            <rect x="3" y="14" width="7" height="7"></rect>
+                        </svg>
+                        <span>Gallery</span>
+                    </button>
+                    <button class="nav-btn" onclick="showView('favorites')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                        </svg>
+                        <span>Favorites</span>
+                    </button>
+                    <button class="nav-btn" onclick="showView('compile')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                        <span>Compile</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gallery View -->
+        <div id="gallery-view" class="view">
+            <div class="app-container">
+                <div class="view-header glass-card">
+                    <button class="glass-button icon-btn" onclick="showView('home')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <line x1="19" y1="12" x2="5" y2="12"></line>
+                            <polyline points="12 19 5 12 12 5"></polyline>
+                        </svg>
+                    </button>
+                    <h2>Your Moments</h2>
+                    <div style="width: 40px;"></div>
+                </div>
+                
+                <div class="content-container">
+                    <div id="gallery-grid" class="gallery-grid">
+                        <div class="empty-state">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                                <circle cx="12" cy="13" r="4"></circle>
+                            </svg>
+                            <p>No moments captured yet</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Compile View -->
+        <div id="compile-view" class="view">
+            <div class="app-container">
+                <div class="view-header glass-card">
+                    <button class="glass-button icon-btn" onclick="showView('home')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <line x1="19" y1="12" x2="5" y2="12"></line>
+                            <polyline points="12 19 5 12 12 5"></polyline>
+                        </svg>
+                    </button>
+                    <h2>Compile & Share</h2>
+                    <div style="width: 40px;"></div>
+                </div>
+
+                <div class="content-container">
+                    <div class="glass-card">
+                        <h3>Monthly Compilation</h3>
+                        <div class="select-row">
+                            <select id="month-select" class="glass-select">
+                                <option value="0">January</option>
+                                <option value="1">February</option>
+                                <option value="2">March</option>
+                                <option value="3">April</option>
+                                <option value="4">May</option>
+                                <option value="5">June</option>
+                                <option value="6">July</option>
+                                <option value="7">August</option>
+                                <option value="8">September</option>
+                                <option value="9">October</option>
+                                <option value="10">November</option>
+                                <option value="11">December</option>
+                            </select>
+                            <select id="year-select-monthly" class="glass-select">
+                                <option value="2024">2024</option>
+                                <option value="2025">2025</option>
+                                <option value="2026">2026</option>
+                            </select>
+                        </div>
+                        <p id="monthly-count" class="photo-count">0 photos</p>
+                        <div id="monthly-preview" class="preview-grid"></div>
+                        <button id="generate-monthly" class="glass-button primary-btn" onclick="generateMonthlyCollage()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            Generate Monthly Collage
+                        </button>
+                    </div>
+
+                    <div class="glass-card">
+                        <h3>Yearly Compilation</h3>
+                        <select id="year-select-yearly" class="glass-select">
+                            <option value="2024">2024</option>
+                            <option value="2025">2025</option>
+                            <option value="2026">2026</option>
+                        </select>
+                        <p id="yearly-count" class="photo-count">0 photos</p>
+                        <div id="yearly-preview" class="preview-grid"></div>
+                        <button id="generate-yearly" class="glass-button primary-btn" onclick="generateYearlyCollage()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            Generate Yearly Collage
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Favorites View -->
+        <div id="favorites-view" class="view">
+            <div class="app-container">
+                <div class="view-header glass-card">
+                    <button class="glass-button icon-btn" onclick="showView('home')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <line x1="19" y1="12" x2="5" y2="12"></line>
+                            <polyline points="12 19 5 12 12 5"></polyline>
+                        </svg>
+                    </button>
+                    <h2>Favorites</h2>
+                    <div style="width: 40px;"></div>
+                </div>
+                
+                <div class="content-container">
+                    <div id="favorites-grid" class="gallery-grid">
+                        <div class="empty-state">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                            </svg>
+                            <p>No favorite moments yet</p>
+                            <p style="font-size: 0.9rem; opacity: 0.7; margin-top: 0.5rem;">Star your best photos to see them here</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile View -->
+        <div id="profile-view" class="view">
+            <div class="app-container">
+                <div class="view-header glass-card">
+                    <button class="glass-button icon-btn" onclick="closeSidebar()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <line x1="19" y1="12" x2="5" y2="12"></line>
+                            <polyline points="12 19 5 12 12 5"></polyline>
+                        </svg>
+                    </button>
+                    <h2>Profile</h2>
+                    <div style="width: 40px;"></div>
+                </div>
+                
+                <div class="content-container">
+                    <div class="glass-card profile-card">
+                        <div id="profile-info" class="profile-info"></div>
+                        
+                        <div class="profile-stats">
+                            <div class="profile-stat">
+                                <div class="profile-stat-value" id="profile-total">0</div>
+                                <div class="profile-stat-label">Total Moments</div>
+                            </div>
+                            <div class="profile-stat">
+                                <div class="profile-stat-value" id="profile-favorites">0</div>
+                                <div class="profile-stat-label">Favorites</div>
+                            </div>
+                            <div class="profile-stat">
+                                <div class="profile-stat-value" id="profile-days">0</div>
+                                <div class="profile-stat-label">Days Active</div>
+                            </div>
+                        </div>
+
+                        <div class="profile-actions">
+                            <button class="glass-button secondary-btn" onclick="showView('settings'); closeSidebar();">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                    <path d="M12 1v6m0 6v6m9-9h-6M7 12H1"></path>
+                                </svg>
+                                Settings
+                            </button>
+                            <button id="profile-signout-btn" class="glass-button secondary-btn" onclick="signOut()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                    <polyline points="16 17 21 12 16 7"></polyline>
+                                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                                </svg>
+                                Sign Out
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings View -->
+        <div id="settings-view" class="view">
+            <div class="app-container">
+                <div class="view-header glass-card">
+                    <button class="glass-button icon-btn" onclick="showView(lastView || 'home')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <line x1="19" y1="12" x2="5" y2="12"></line>
+                            <polyline points="12 19 5 12 12 5"></polyline>
+                        </svg>
+                    </button>
+                    <h2>Settings</h2>
+                    <div style="width: 40px;"></div>
+                </div>
+                
+                <div class="content-container">
+                    <div class="glass-card">
+                        <h3>Capture Settings</h3>
+                        <div class="setting-item">
+                            <label class="setting-label">Reminder Frequency</label>
+                            <select id="frequency-select-main" class="glass-select">
+                                <option value="daily">Daily</option>
+                                <option value="weekly">Weekly</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="glass-card">
+                        <h3>🔔 Smart Reminders</h3>
+                        
+                        <div class="setting-item">
+                            <div class="setting-row">
+                                <label class="setting-label">Enable Reminders</label>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="reminder-toggle" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div id="reminder-settings-details">
+                            <div class="setting-item">
+                                <label class="setting-label">Reminder Time</label>
+                                <div class="time-picker">
+                                    <select id="reminder-hour" class="glass-select">
+                                        <option value="6">6 AM</option>
+                                        <option value="7">7 AM</option>
+                                        <option value="8">8 AM</option>
+                                        <option value="9">9 AM</option>
+                                        <option value="10">10 AM</option>
+                                        <option value="11">11 AM</option>
+                                        <option value="12">12 PM</option>
+                                        <option value="13">1 PM</option>
+                                        <option value="14">2 PM</option>
+                                        <option value="15">3 PM</option>
+                                        <option value="16">4 PM</option>
+                                        <option value="17">5 PM</option>
+                                        <option value="18">6 PM</option>
+                                        <option value="19">7 PM</option>
+                                        <option value="20" selected>8 PM</option>
+                                        <option value="21">9 PM</option>
+                                        <option value="22">10 PM</option>
+                                        <option value="23">11 PM</option>
+                                    </select>
+                                    <span>:</span>
+                                    <select id="reminder-minute" class="glass-select">
+                                        <option value="0" selected>00</option>
+                                        <option value="15">15</option>
+                                        <option value="30">30</option>
+                                        <option value="45">45</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="setting-item">
+                                <label class="setting-label">Frequency</label>
+                                <select id="reminder-frequency-select" class="glass-select">
+                                    <option value="daily" selected>Every Day</option>
+                                    <option value="weekly">Once a Week</option>
+                                </select>
+                            </div>
+                            
+                            <div class="setting-item" id="weekday-picker" style="display: none;">
+                                <label class="setting-label">Day of Week</label>
+                                <select id="reminder-weekday" class="glass-select">
+                                    <option value="0">Sunday</option>
+                                    <option value="1">Monday</option>
+                                    <option value="2">Tuesday</option>
+                                    <option value="3">Wednesday</option>
+                                    <option value="4">Thursday</option>
+                                    <option value="5">Friday</option>
+                                    <option value="6">Saturday</option>
+                                </select>
+                            </div>
+                            
+                            <div class="reminder-info">
+                                <p id="next-reminder-text" style="text-align: center; font-size: 0.9rem;">
+                                    Next reminder: Today at 8:00 PM
+                                </p>
+                            </div>
+                            
+                            <button class="glass-button secondary-btn" id="test-reminder-btn">
+                                🔔 Test Reminder
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="glass-card">
+                        <h3>Upload Limits</h3>
+                        <div class="setting-item">
+                            <label class="setting-label">Monthly Uploads</label>
+                            <div class="limit-info">
+                                <div class="limit-bar">
+                                    <div id="upload-progress-bar" class="limit-bar-fill"></div>
+                                </div>
+                                <p id="upload-limit-text" class="limit-text">0 of 3 uploads this month</p>
+                                <p class="limit-note">Free tier: 3 uploads per month. Upgrade to Premium for unlimited uploads.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card">
+                        <h3>Premium</h3>
+                        <div class="premium-info">
+                            <p><strong>Upgrade to Premium</strong></p>
+                            <ul style="margin: 1rem 0; padding-left: 1.5rem; opacity: 0.9;">
+                                <li>Unlimited photo uploads</li>
+                                <li>Unlimited cloud storage</li>
+                                <li>Premium templates</li>
+                                <li>HD exports</li>
+                                <li>Priority support</li>
+                            </ul>
+                            <button class="glass-button primary-btn" onclick="showToast('Premium coming soon! 🚀')">
+                                Upgrade to Premium - $2.99/month
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="glass-card">
+                        <h3>About</h3>
+                        <p style="opacity: 0.8; margin-bottom: 0.5rem;"><strong>Clock It</strong> v3.0</p>
+                        <p style="opacity: 0.7; font-size: 0.9rem; line-height: 1.6;">
+                            Capture your moments, one at a time. A beautiful photo journal app to document your life's journey.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar Menu -->
+        <div id="sidebar" class="sidebar">
+            <div class="sidebar-overlay" onclick="closeSidebar()"></div>
+            <div class="sidebar-content glass-card">
+                <div class="sidebar-header">
+                    <button class="glass-button icon-btn" onclick="closeSidebar()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+
+                <div id="sidebar-user-info" class="sidebar-user-info">
+                    <!-- User info will be inserted here -->
+                </div>
+
+                <div class="sidebar-menu">
+                    <button class="sidebar-menu-item" onclick="showView('profile'); closeSidebar();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                        <span>My Profile</span>
+                    </button>
+                    
+                    <button class="sidebar-menu-item" onclick="showView('favorites'); closeSidebar();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                        </svg>
+                        <span>Favorites</span>
+                    </button>
+                    
+                    <button class="sidebar-menu-item" onclick="showView('settings'); closeSidebar();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M12 1v6m0 6v6m9-9h-6M7 12H1"></path>
+                        </svg>
+                        <span>Settings</span>
+                    </button>
+
+                    <div class="sidebar-divider"></div>
+
+                    <button class="sidebar-menu-item" onclick="exportAllData()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        <span>Export All Data</span>
+                    </button>
+
+                    <button class="sidebar-menu-item danger" onclick="signOut()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                        <span>Sign Out</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Panel -->
+        <div id="settings-panel" class="modal hidden">
+            <div class="modal-overlay" onclick="toggleSettings()"></div>
+            <div class="glass-card modal-content">
+                <div class="modal-header">
+                    <h3>Settings</h3>
+                    <button class="glass-button icon-btn" onclick="toggleSettings()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="setting-item">
+                    <label class="setting-label">Reminder Frequency</label>
+                    <select id="frequency-select" class="glass-select">
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                    </select>
+                </div>
+
+                <div class="setting-item" id="account-section">
+                    <label class="setting-label">Account</label>
+                    <div id="user-details"></div>
+                    <button id="signout-btn" class="glass-button secondary-btn" onclick="signOut()">
+                        Sign Out
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="toast" class="toast glass-card hidden"></div>
+
+    <!-- Caption/Journal Modal -->
+    <div id="caption-modal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeCaptionModal()"></div>
+        <div class="modal-content glass-card">
+            <div class="modal-header">
+                <h3>📝 Add Your Story</h3>
+                <button class="glass-button icon-btn" onclick="closeCaptionModal()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="modal-body">
+                <img id="caption-preview-img" class="caption-preview" src="" alt="Photo preview">
+                
+                <p style="opacity: 0.8; margin-bottom: 0.5rem;">Tell the story behind this moment (optional)</p>
+                
+                <textarea 
+                    id="caption-textarea" 
+                    class="caption-textarea" 
+                    placeholder="What made this moment special? Where were you? Who were you with? How did you feel?&#10;&#10;Your story, unlimited characters..."
+                    maxlength="10000"
+                ></textarea>
+                
+                <div class="caption-char-count">
+                    <span id="caption-char-count">0</span> / 10,000 characters
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="glass-button secondary-btn" onclick="skipCaption()">
+                    Skip
+                </button>
+                <button class="glass-button primary-btn" onclick="saveCaption()">
+                    Save Moment
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
