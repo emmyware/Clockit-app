@@ -103,15 +103,9 @@ function showAuthForm(type) {
     document.getElementById('auth-signup').classList.toggle('hidden', type !== 'signup');
     document.getElementById('auth-login').classList.toggle('hidden', type !== 'login');
 
-    // Re-render google buttons if needed (they sometimes don't render until visible)
+    // Re-render google buttons now that containers are visible
     if (type === 'signup' || type === 'login') {
-        const btnId = type === 'signup' ? 'google-signin-button-signup' : 'google-signin-button-login';
-        const el = document.getElementById(btnId);
-        if (el && !el.querySelector('iframe')) {
-            const cfg = { theme: 'filled_blue', size: 'large', width: 300, shape: 'rectangular',
-                text: type === 'signup' ? 'signup_with' : 'signin_with' };
-            window.google?.accounts.id.renderButton(el, cfg);
-        }
+        setTimeout(renderGoogleButtons, 50);
     }
 }
 
@@ -123,37 +117,53 @@ function initializeApp() {
     }, 2500);
     
     setupEventListeners();
-    initGoogleSignIn();
+    // initGoogleSignIn is triggered by window.onGoogleLibraryLoad once the GSI script loads
     initSlideshow();
 }
 
 // Google Sign-In Integration
+// Called by Google's GSI library once it's ready (set on window before script loads)
+window.onGoogleLibraryLoad = function() {
+    initGoogleSignIn();
+};
+
 function initGoogleSignIn() {
     const CLIENT_ID = '266277627226-c6991ph055g8aphgqt3fdknkbqf0re22.apps.googleusercontent.com';
-    
-    window.google?.accounts.id.initialize({
+
+    if (!window.google || !window.google.accounts) {
+        // Library not ready yet, retry in 500ms
+        setTimeout(initGoogleSignIn, 500);
+        return;
+    }
+
+    window.google.accounts.id.initialize({
         client_id: CLIENT_ID,
         callback: handleGoogleSignIn,
-        auto_select: false
+        auto_select: false,
+        cancel_on_tap_outside: false
     });
-    
+
+    renderGoogleButtons();
+}
+
+function renderGoogleButtons() {
+    if (!window.google || !window.google.accounts) return;
+
     const btnConfig = {
         theme: 'filled_blue',
         size: 'large',
-        width: 300,
-        text: 'signin_with',
+        width: 280,
         shape: 'rectangular'
     };
 
-    // Render into both signup and login containers
     const signupBtn = document.getElementById('google-signin-button-signup');
     const loginBtn = document.getElementById('google-signin-button-login');
-    
-    if (signupBtn) {
-        window.google?.accounts.id.renderButton(signupBtn, { ...btnConfig, text: 'signup_with' });
+
+    if (signupBtn && !signupBtn.querySelector('iframe')) {
+        window.google.accounts.id.renderButton(signupBtn, { ...btnConfig, text: 'signup_with' });
     }
-    if (loginBtn) {
-        window.google?.accounts.id.renderButton(loginBtn, { ...btnConfig, text: 'signin_with' });
+    if (loginBtn && !loginBtn.querySelector('iframe')) {
+        window.google.accounts.id.renderButton(loginBtn, { ...btnConfig, text: 'signin_with' });
     }
 }
 
