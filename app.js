@@ -158,62 +158,55 @@ function initGoogleSignIn() {
 }
 
 function handleGoogleSignIn(response) {
-    console.log('Google Sign-In response received');
-    
-    // Decode the JWT token
-    const userInfo = parseJwt(response.credential);
-    
-    currentUser = {
-        id: userInfo.sub,
-        name: userInfo.name,
-        email: userInfo.email,
-        picture: userInfo.picture
-    };
-    
-    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(currentUser));
-    localStorage.setItem(STORAGE_KEYS.SYNC_ENABLED, 'true');
-    
-    console.log('User data saved, redirecting to home...');
-    
-    // Hide splash screen if still visible
-    const splashScreen = document.getElementById('splash-screen');
-    if (splashScreen) {
-        splashScreen.classList.remove('active');
-        splashScreen.style.display = 'none';
+    try {
+        const userInfo = parseJwt(response.credential);
+        currentUser = {
+            id: userInfo.sub,
+            name: userInfo.name,
+            email: userInfo.email,
+            picture: userInfo.picture
+        };
+        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(currentUser));
+        localStorage.setItem(STORAGE_KEYS.SYNC_ENABLED, 'true');
+    } catch(e) {
+        console.error('Failed to parse Google credential', e);
+        showToast('Sign-in failed. Please try again.');
+        return;
     }
-    
-    // Hide login view immediately
-    const loginView = document.getElementById('login-view');
-    if (loginView) {
-        loginView.classList.remove('active');
-        loginView.style.display = 'none';
-    }
-    
-    // Load user data
-    loadUserData();
-    
-    // Show home view with force
+
+    // Load data BEFORE switching views so state is ready
+    loadData();
+
+    // Force switch to home view so all DOM elements exist
+    forceShowHome();
+
+    // Now safe to update UI and user info
+    updateUI();
+    displayUserInfo();
+
+    showToast('Welcome, ' + currentUser.name + '!');
+}
+
+function forceShowHome() {
+    // Hide all views cleanly
+    document.querySelectorAll('.view').forEach(v => {
+        v.classList.remove('active');
+        v.style.display = '';
+    });
+
+    // Hide splash
+    const splash = document.getElementById('splash-screen');
+    if (splash) { splash.classList.remove('active'); splash.style.display = 'none'; }
+
+    // Show home
     const homeView = document.getElementById('home-view');
-    if (homeView) {
-        homeView.classList.add('active');
-        homeView.style.display = 'block';
-    }
-    
+    if (homeView) homeView.classList.add('active');
     currentView = 'home';
-    
-    // Update nav
+
+    // Activate correct nav button
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    const homeNavBtn = document.querySelector('.nav-btn[onclick*="home"]');
-    if (homeNavBtn) {
-        homeNavBtn.classList.add('active');
-    }
-    
-    // Make sure app is visible
-    document.getElementById('app').style.opacity = '1';
-    
-    showToast('Welcome back, ' + currentUser.name + '! 🎉');
-    
-    console.log('Redirect complete, home view should be visible');
+    const homeBtn = document.querySelector('.nav-btn[onclick*=\"home\"]');
+    if (homeBtn) homeBtn.classList.add('active');
 }
 
 function parseJwt(token) {
@@ -228,11 +221,14 @@ function parseJwt(token) {
 function checkAuthState() {
     const savedUser = localStorage.getItem(STORAGE_KEYS.USER);
     const syncEnabled = localStorage.getItem(STORAGE_KEYS.SYNC_ENABLED);
-    
+
     if (savedUser && syncEnabled === 'true') {
         currentUser = JSON.parse(savedUser);
-        loadUserData();
-        showView('home');
+        // Load data first, show home, THEN update UI so DOM is ready
+        loadData();
+        forceShowHome();
+        updateUI();
+        displayUserInfo();
     } else {
         showView('login');
     }
@@ -245,45 +241,36 @@ function loadUserData() {
 }
 
 function displayUserInfo() {
-    if (currentUser) {
-        // Header avatar
-        const avatar = document.getElementById('user-avatar');
+    if (!currentUser) return;
+
+    // Header avatar - null-safe
+    const avatar = document.getElementById('user-avatar');
+    if (avatar) {
         if (currentUser.picture) {
-            avatar.style.backgroundImage = `url(${currentUser.picture})`;
+            avatar.style.backgroundImage = 'url(' + currentUser.picture + ')';
+            avatar.style.backgroundSize = 'cover';
         } else {
-            avatar.style.background = `linear-gradient(135deg, var(--primary-blue), var(--accent-orange))`;
+            avatar.style.background = 'linear-gradient(135deg, var(--primary-blue), var(--accent-orange))';
         }
-        
-        // User details in settings
-        const userDetails = document.getElementById('user-details');
-        userDetails.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 1rem;">
-                <img src="${currentUser.picture || ''}" 
-                     alt="${currentUser.name}" 
-                     style="width: 50px; height: 50px; border-radius: 50%;"
-                     onerror="this.style.display='none'">
-                <div>
-                    <div style="font-weight: 600; margin-bottom: 0.25rem;">${currentUser.name}</div>
-                    <div style="font-size: 0.85rem; opacity: 0.8;">${currentUser.email}</div>
-                </div>
-            </div>
-        `;
-        
-        // Menu user info
-        const menuUserInfo = document.getElementById('menu-user-info');
-        menuUserInfo.innerHTML = `
-            <div style="text-align: center; margin-bottom: 1rem;">
-                <img src="${currentUser.picture || ''}" 
-                     alt="${currentUser.name}" 
-                     style="width: 60px; height: 60px; border-radius: 50%; margin-bottom: 0.5rem;"
-                     onerror="this.style.display='none'">
-                <div style="font-weight: 600; margin-bottom: 0.25rem;">${currentUser.name}</div>
-                <div style="font-size: 0.85rem; opacity: 0.8;">${currentUser.email}</div>
-            </div>
-        `;
-        
-        document.getElementById('account-section').style.display = 'block';
     }
+
+    // User details in settings - null-safe
+    const userDetails = document.getElementById('user-details');
+    if (userDetails) {
+        userDetails.innerHTML =
+            '<div style="display:flex;align-items:center;gap:1rem;">' +
+            '<img src="' + (currentUser.picture || '') + '" alt="' + currentUser.name + '" ' +
+            'style="width:50px;height:50px;border-radius:50%;" onerror="this.style.display='none'">' +
+            '<div><div style="font-weight:600;margin-bottom:0.25rem;">' + currentUser.name + '</div>' +
+            '<div style="font-size:0.85rem;opacity:0.8;">' + currentUser.email + '</div></div></div>';
+    }
+
+    // Sidebar user info - null-safe (uses updateSidebarUserInfo which is already safe)
+    updateSidebarUserInfo();
+
+    // Account section in settings - null-safe
+    const accountSection = document.getElementById('account-section');
+    if (accountSection) accountSection.style.display = 'block';
 }
 
 function signOut() {
