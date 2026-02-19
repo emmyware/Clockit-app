@@ -21,12 +21,99 @@ let currentUser = null;
 let googleAuth = null;
 let uploadsThisMonth = 0;
 let favorites = new Set();
-const MAX_FREE_UPLOADS = 3;
+const MAX_FREE_UPLOADS = 30;
 
 // Initialize App
 document.addEventListener('DOMContentLoaded', () => {
     initializeApp();
 });
+
+// ===== ONBOARDING SLIDESHOW =====
+let currentSlide = 0;
+const TOTAL_SLIDES = 4;
+let slideInterval = null;
+let slideshowComplete = false;
+
+function initSlideshow() {
+    startSlideTimer();
+
+    // Touch/swipe support
+    const container = document.getElementById('slides-container');
+    if (!container) return;
+    let touchStartX = 0;
+    container.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, { passive: true });
+    container.addEventListener('touchend', e => {
+        const dx = e.changedTouches[0].screenX - touchStartX;
+        if (Math.abs(dx) > 50) dx < 0 ? nextSlide() : prevSlide();
+    }, { passive: true });
+}
+
+function startSlideTimer() {
+    clearInterval(slideInterval);
+    slideInterval = setInterval(() => {
+        if (currentSlide < TOTAL_SLIDES - 1) {
+            nextSlide();
+        } else {
+            clearInterval(slideInterval);
+            slideshowComplete = true;
+            // Hide skip button when on last slide — auth is already visible
+            const skip = document.getElementById('onboarding-skip');
+            if (skip) skip.style.opacity = '0';
+        }
+    }, 3800);
+}
+
+function goToSlide(index) {
+    const slides = document.querySelectorAll('.onboarding-slide');
+    const dots = document.querySelectorAll('.slide-dot');
+
+    slides[currentSlide].classList.remove('active-slide');
+    slides[currentSlide].classList.add('slide-exit');
+
+    setTimeout(() => {
+        slides[currentSlide].classList.remove('slide-exit');
+    }, 550);
+
+    currentSlide = index;
+
+    slides[currentSlide].classList.add('active-slide');
+    dots.forEach((d, i) => d.classList.toggle('active', i === currentSlide));
+
+    startSlideTimer();
+}
+
+function nextSlide() {
+    if (currentSlide < TOTAL_SLIDES - 1) goToSlide(currentSlide + 1);
+}
+
+function prevSlide() {
+    if (currentSlide > 0) goToSlide(currentSlide - 1);
+}
+
+function skipToAuth() {
+    clearInterval(slideInterval);
+    goToSlide(TOTAL_SLIDES - 1);
+    const skip = document.getElementById('onboarding-skip');
+    if (skip) skip.style.opacity = '0';
+}
+
+function showAuthForm(type) {
+    // type: 'cta' | 'signup' | 'login'
+    document.getElementById('auth-cta').classList.toggle('hidden', type !== 'cta');
+    document.getElementById('auth-signup').classList.toggle('hidden', type !== 'signup');
+    document.getElementById('auth-login').classList.toggle('hidden', type !== 'login');
+
+    // Re-render google buttons if needed (they sometimes don't render until visible)
+    if (type === 'signup' || type === 'login') {
+        const btnId = type === 'signup' ? 'google-signin-button-signup' : 'google-signin-button-login';
+        const el = document.getElementById(btnId);
+        if (el && !el.querySelector('iframe')) {
+            const cfg = { theme: 'filled_blue', size: 'large', width: 300, shape: 'rectangular',
+                text: type === 'signup' ? 'signup_with' : 'signin_with' };
+            window.google?.accounts.id.renderButton(el, cfg);
+        }
+    }
+}
 
 function initializeApp() {
     // Show splash screen
@@ -37,16 +124,11 @@ function initializeApp() {
     
     setupEventListeners();
     initGoogleSignIn();
+    initSlideshow();
 }
 
 // Google Sign-In Integration
 function initGoogleSignIn() {
-    // Note: In production, you'll need to:
-    // 1. Create a project at console.cloud.google.com
-    // 2. Enable Google Sign-In API
-    // 3. Get your Client ID
-    // 4. Replace 'YOUR_CLIENT_ID' below with your actual client ID
-    
     const CLIENT_ID = '266277627226-c6991ph055g8aphgqt3fdknkbqf0re22.apps.googleusercontent.com';
     
     window.google?.accounts.id.initialize({
@@ -55,20 +137,29 @@ function initGoogleSignIn() {
         auto_select: false
     });
     
-    // Render the sign-in button
-    window.google?.accounts.id.renderButton(
-        document.getElementById('google-signin-button'),
-        {
-            theme: 'filled_blue',
-            size: 'large',
-            width: 300,
-            text: 'signin_with',
-            shape: 'rectangular'
-        }
-    );
+    const btnConfig = {
+        theme: 'filled_blue',
+        size: 'large',
+        width: 300,
+        text: 'signin_with',
+        shape: 'rectangular'
+    };
+
+    // Render into both signup and login containers
+    const signupBtn = document.getElementById('google-signin-button-signup');
+    const loginBtn = document.getElementById('google-signin-button-login');
+    
+    if (signupBtn) {
+        window.google?.accounts.id.renderButton(signupBtn, { ...btnConfig, text: 'signup_with' });
+    }
+    if (loginBtn) {
+        window.google?.accounts.id.renderButton(loginBtn, { ...btnConfig, text: 'signin_with' });
+    }
 }
 
 function handleGoogleSignIn(response) {
+    console.log('Google Sign-In response received');
+    
     // Decode the JWT token
     const userInfo = parseJwt(response.credential);
     
@@ -82,21 +173,47 @@ function handleGoogleSignIn(response) {
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(currentUser));
     localStorage.setItem(STORAGE_KEYS.SYNC_ENABLED, 'true');
     
+    console.log('User data saved, redirecting to home...');
+    
+    // Hide splash screen if still visible
+    const splashScreen = document.getElementById('splash-screen');
+    if (splashScreen) {
+        splashScreen.classList.remove('active');
+        splashScreen.style.display = 'none';
+    }
+    
     // Hide login view immediately
-    document.getElementById('login-view')?.classList.remove('active');
+    const loginView = document.getElementById('login-view');
+    if (loginView) {
+        loginView.classList.remove('active');
+        loginView.style.display = 'none';
+    }
     
     // Load user data
     loadUserData();
     
-    // Show home view
-    document.getElementById('home-view')?.classList.add('active');
+    // Show home view with force
+    const homeView = document.getElementById('home-view');
+    if (homeView) {
+        homeView.classList.add('active');
+        homeView.style.display = 'block';
+    }
+    
     currentView = 'home';
     
     // Update nav
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    document.querySelector('.nav-btn[onclick*="home"]')?.classList.add('active');
+    const homeNavBtn = document.querySelector('.nav-btn[onclick*="home"]');
+    if (homeNavBtn) {
+        homeNavBtn.classList.add('active');
+    }
     
-    showToast('Signed in successfully! 🎉');
+    // Make sure app is visible
+    document.getElementById('app').style.opacity = '1';
+    
+    showToast('Welcome back, ' + currentUser.name + '! 🎉');
+    
+    console.log('Redirect complete, home view should be visible');
 }
 
 function parseJwt(token) {
@@ -185,13 +302,15 @@ function signOut() {
     }
 }
 
-// Continue without sign-in
-document.getElementById('continue-local-btn')?.addEventListener('click', () => {
-    localStorage.setItem(STORAGE_KEYS.SYNC_ENABLED, 'false');
-    loadData();
-    updateUI();
-    showView('home');
-    showToast('Using local storage only');
+// Continue without sign-in — use event delegation since button is inside dynamic auth form
+document.addEventListener('click', (e) => {
+    if (e.target.id === 'continue-local-btn' || e.target.closest('#continue-local-btn')) {
+        localStorage.setItem(STORAGE_KEYS.SYNC_ENABLED, 'false');
+        loadData();
+        updateUI();
+        showView('home');
+        showToast('Using local storage only');
+    }
 });
 
 // Load data from localStorage
@@ -301,20 +420,26 @@ function handlePhotoCapture(event) {
     
     const reader = new FileReader();
     reader.onload = (e) => {
-        const photo = {
-            id: Date.now(),
-            data: e.target.result,
-            date: new Date().toISOString(),
-            timestamp: Date.now(),
-            userId: currentUser?.id || 'local'
-        };
+        const photoData = e.target.result;
         
-        photos.push(photo);
-        savePhotos();
-        localStorage.setItem(STORAGE_KEYS.LAST_CAPTURE, new Date().toISOString());
-        
-        updateUI();
-        showToast('Moment captured! 📸');
+        // Show caption modal
+        showCaptionModal(photoData, (caption) => {
+            const photo = {
+                id: Date.now(),
+                data: photoData,
+                date: new Date().toISOString(),
+                timestamp: Date.now(),
+                userId: currentUser?.id || 'local',
+                caption: caption || '' // Add caption field
+            };
+            
+            photos.push(photo);
+            savePhotos();
+            localStorage.setItem(STORAGE_KEYS.LAST_CAPTURE, new Date().toISOString());
+            
+            updateUI();
+            showToast('Moment captured! 📸');
+        });
         
         event.target.value = '';
     };
@@ -803,19 +928,32 @@ function updateGalleryViewWithStars() {
     
     galleryGrid.innerHTML = sortedPhotos.map(photo => `
         <div class="gallery-item">
-            <img src="${photo.data}" alt="Captured moment" loading="lazy">
+            <img src="${photo.data}" alt="Captured moment" loading="lazy" onclick="viewEditCaption(${photo.id})">
             <div class="gallery-item-overlay">
-                <button class="star-btn ${favorites.has(photo.id) ? 'starred' : ''}" onclick="toggleFavorite(${photo.id})">
+                <button class="star-btn ${favorites.has(photo.id) ? 'starred' : ''}" onclick="event.stopPropagation(); toggleFavorite(${photo.id})">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    </svg>
+                </button>
+                <button class="edit-caption-btn" onclick="event.stopPropagation(); viewEditCaption(${photo.id})" title="Add/Edit Caption">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                     </svg>
                 </button>
             </div>
             <div class="gallery-item-info">
                 <div class="gallery-item-date">${formatDate(photo.date)}</div>
+                ${photo.caption ? `<div class="gallery-item-caption">${truncateText(photo.caption, 100)}</div>` : ''}
             </div>
         </div>
     `).join('');
+}
+
+// Helper function to truncate text
+function truncateText(text, maxLength) {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
 }
 
 // Profile Functions
@@ -1116,7 +1254,15 @@ function getNextReminderTime() {
 // Schedule next reminder
 let reminderTimeout = null;
 function scheduleNextReminder() {
-    if (!reminderSystem.reminderEnabled || reminderSystem.permission !== 'granted') {
+    console.log('scheduleNextReminder called');
+    
+    if (!reminderSystem.reminderEnabled) {
+        console.log('Reminders disabled, not scheduling');
+        return;
+    }
+    
+    if (reminderSystem.permission !== 'granted') {
+        console.log('No notification permission, not scheduling');
         return;
     }
     
@@ -1126,14 +1272,29 @@ function scheduleNextReminder() {
     }
     
     const nextTime = getNextReminderTime();
-    const timeUntil = nextTime - new Date();
+    const now = new Date();
+    const timeUntil = nextTime - now;
     
-    console.log(`Next reminder: ${nextTime.toLocaleString()}`);
+    console.log(`Next reminder scheduled for: ${nextTime.toLocaleString()}`);
+    console.log(`Time until reminder: ${Math.floor(timeUntil / 1000 / 60)} minutes`);
+    
+    // If time is more than 24 hours away, check again in 1 hour
+    if (timeUntil > 24 * 60 * 60 * 1000) {
+        reminderTimeout = setTimeout(() => {
+            scheduleNextReminder();
+        }, 60 * 60 * 1000); // Check again in 1 hour
+        return;
+    }
     
     reminderTimeout = setTimeout(() => {
+        console.log('Showing reminder notification now!');
         showReminderNotification();
-        setTimeout(() => scheduleNextReminder(), 1000);
+        // Schedule next one after showing
+        setTimeout(() => scheduleNextReminder(), 2000);
     }, timeUntil);
+    
+    // Save scheduled time for debugging
+    localStorage.setItem('clockit-next-reminder-time', nextTime.toISOString());
 }
 
 // Show reminder notification
@@ -1233,5 +1394,213 @@ if ('serviceWorker' in navigator) {
             showToast('Reminder snoozed for 1 hour');
         }
     });
+}
+
+
+// ========== CAPTION/JOURNAL FEATURE ==========
+
+let captionModalCallback = null;
+let currentPhotoForCaption = null;
+
+// Show caption modal
+function showCaptionModal(photoData, callback) {
+    currentPhotoForCaption = photoData;
+    captionModalCallback = callback;
+    
+    const modal = document.getElementById('caption-modal');
+    const previewImg = document.getElementById('caption-preview-img');
+    const textarea = document.getElementById('caption-textarea');
+    
+    if (modal && previewImg && textarea) {
+        previewImg.src = photoData;
+        textarea.value = '';
+        updateCharCount();
+        modal.classList.remove('hidden');
+        
+        // Focus textarea after animation
+        setTimeout(() => textarea.focus(), 300);
+    }
+}
+
+// Close caption modal
+function closeCaptionModal() {
+    const modal = document.getElementById('caption-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+    captionModalCallback = null;
+    currentPhotoForCaption = null;
+}
+
+// Save caption
+function saveCaption() {
+    const textarea = document.getElementById('caption-textarea');
+    const caption = textarea ? textarea.value.trim() : '';
+    
+    if (captionModalCallback) {
+        captionModalCallback(caption);
+    }
+    
+    closeCaptionModal();
+}
+
+// Skip caption
+function skipCaption() {
+    if (captionModalCallback) {
+        captionModalCallback('');
+    }
+    closeCaptionModal();
+}
+
+// Update character count
+function updateCharCount() {
+    const textarea = document.getElementById('caption-textarea');
+    const countEl = document.getElementById('caption-char-count');
+    
+    if (textarea && countEl) {
+        countEl.textContent = textarea.value.length;
+    }
+}
+
+// Listen for textarea changes
+document.addEventListener('DOMContentLoaded', () => {
+    const textarea = document.getElementById('caption-textarea');
+    if (textarea) {
+        textarea.addEventListener('input', updateCharCount);
+    }
+});
+
+// Update upload handler to also ask for caption
+function handlePhotoUpload(event) {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+    
+    const remainingUploads = MAX_FREE_UPLOADS - uploadsThisMonth;
+    
+    if (remainingUploads <= 0) {
+        showToast('Upload limit reached! Upgrade to Premium for unlimited uploads.');
+        event.target.value = '';
+        return;
+    }
+    
+    const filesToProcess = Math.min(files.length, remainingUploads);
+    
+    // Process each file with caption
+    processUploadWithCaption(files, 0, filesToProcess);
+    
+    event.target.value = '';
+}
+
+function processUploadWithCaption(files, index, total) {
+    if (index >= total) {
+        updateUI();
+        showToast(`${total} photo(s) uploaded! 📤`);
+        return;
+    }
+    
+    const file = files[index];
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+        const photoData = e.target.result;
+        
+        // Show caption modal for this upload
+        showCaptionModal(photoData, (caption) => {
+            const photo = {
+                id: Date.now() + index,
+                data: photoData,
+                date: new Date().toISOString(),
+                timestamp: Date.now() + index,
+                userId: currentUser?.id || 'local',
+                uploaded: true,
+                caption: caption || ''
+            };
+            
+            photos.push(photo);
+            uploadsThisMonth++;
+            
+            savePhotos();
+            localStorage.setItem(STORAGE_KEYS.UPLOADS_THIS_MONTH, uploadsThisMonth.toString());
+            
+            // Process next file
+            processUploadWithCaption(files, index + 1, total);
+        });
+    };
+    
+    reader.readAsDataURL(file);
+}
+
+// View/Edit caption for existing photo
+function viewEditCaption(photoId) {
+    const photo = photos.find(p => p.id === photoId);
+    if (!photo) return;
+    
+    const modal = document.getElementById('caption-modal');
+    const previewImg = document.getElementById('caption-preview-img');
+    const textarea = document.getElementById('caption-textarea');
+    
+    if (modal && previewImg && textarea) {
+        previewImg.src = photo.data;
+        textarea.value = photo.caption || '';
+        updateCharCount();
+        modal.classList.remove('hidden');
+        
+        // Override callback to update existing photo
+        captionModalCallback = (newCaption) => {
+            photo.caption = newCaption;
+            savePhotos();
+            updateUI();
+            showToast('Caption updated! ✏️');
+        };
+        
+        setTimeout(() => textarea.focus(), 300);
+    }
+}
+
+// Share photo with caption to social media
+async function sharePhotoWithCaption(photoId, platform) {
+    const photo = photos.find(p => p.id === photoId);
+    if (!photo) return;
+    
+    let shareText = photo.caption || 'My Clock It moment 📸';
+    
+    // Add hashtags
+    shareText += '\n\n#ClockIt #Memories #PhotoJournal';
+    
+    // Platform-specific sharing
+    if (platform === 'twitter') {
+        const maxLength = 280 - 50; // Reserve space for link
+        if (shareText.length > maxLength) {
+            shareText = shareText.substring(0, maxLength - 3) + '...';
+        }
+        const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
+        window.open(tweetUrl, '_blank');
+    } else if (platform === 'facebook') {
+        const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}&quote=${encodeURIComponent(shareText)}`;
+        window.open(fbUrl, '_blank');
+    } else if (platform === 'whatsapp') {
+        const waUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+        window.open(waUrl, '_blank');
+    } else if (navigator.share) {
+        // Use Web Share API if available
+        try {
+            const blob = await fetch(photo.data).then(r => r.blob());
+            const file = new File([blob], 'clockit-moment.jpg', { type: 'image/jpeg' });
+            
+            await navigator.share({
+                title: 'My Clock It Moment',
+                text: shareText,
+                files: [file]
+            });
+        } catch (error) {
+            console.error('Share failed:', error);
+        }
+    }
+    
+    // Download the photo too
+    const a = document.createElement('a');
+    a.href = photo.data;
+    a.download = `clockit-${Date.now()}.jpg`;
+    a.click();
 }
 

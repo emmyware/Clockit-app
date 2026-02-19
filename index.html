@@ -29,26 +29,130 @@
             </div>
         </div>
 
-        <!-- Login View -->
+        <!-- Onboarding Slideshow View -->
         <div id="login-view" class="view">
-            <div class="login-container">
-                <div class="glass-card login-card">
-                    <img src="logo.png" alt="Clock It" class="login-logo">
-                    <h2 class="login-title">Welcome to Clock It</h2>
-                    <p class="login-subtitle">Capture your moments, sync across devices</p>
-                    
-                    <div id="google-signin-button"></div>
-                    
-                    <button id="continue-local-btn" class="glass-button secondary-btn">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="12" cy="7" r="4"></circle>
-                        </svg>
-                        Continue Without Sign In
-                    </button>
-                    
-                    <p class="login-note">Sign in with Google to sync your photos across all devices</p>
+            <!-- Slides -->
+            <div class="onboarding-wrapper">
+                <div class="slides-container" id="slides-container">
+
+                    <!-- Slide 1 -->
+                    <div class="onboarding-slide slide-1 active-slide">
+                        <div class="slide-bg-gradient slide-bg-1"></div>
+                        <div class="slide-content">
+                            <div class="slide-icon-wrap">
+                                <div class="slide-icon-ring">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="slide-icon">
+                                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                                        <circle cx="12" cy="13" r="4"></circle>
+                                    </svg>
+                                </div>
+                            </div>
+                            <h1 class="slide-headline">One photo.<br>Every day.</h1>
+                            <p class="slide-body">Build a living archive of your life — one moment at a time. No pressure, no feeds. Just you and your memories.</p>
+                        </div>
+                    </div>
+
+                    <!-- Slide 2 -->
+                    <div class="onboarding-slide slide-2">
+                        <div class="slide-bg-gradient slide-bg-2"></div>
+                        <div class="slide-content">
+                            <div class="slide-icon-wrap">
+                                <div class="slide-icon-ring">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="slide-icon">
+                                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                                    </svg>
+                                </div>
+                            </div>
+                            <h1 class="slide-headline">Star your<br>best moments.</h1>
+                            <p class="slide-body">Heart the photos that matter most. Your favorites are always one tap away — a curated highlight reel of your life.</p>
+                        </div>
+                    </div>
+
+                    <!-- Slide 3 -->
+                    <div class="onboarding-slide slide-3">
+                        <div class="slide-bg-gradient slide-bg-3"></div>
+                        <div class="slide-content">
+                            <div class="slide-icon-wrap">
+                                <div class="slide-icon-ring">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="slide-icon">
+                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                                    </svg>
+                                </div>
+                            </div>
+                            <h1 class="slide-headline">See the year<br>come alive.</h1>
+                            <p class="slide-body">Generate stunning monthly and yearly collages from your photos. Watch time pass in a way words never could.</p>
+                        </div>
+                    </div>
+
+                    <!-- Slide 4 -->
+                    <div class="onboarding-slide slide-4">
+                        <div class="slide-bg-gradient slide-bg-4"></div>
+                        <div class="slide-content">
+                            <div class="slide-icon-wrap">
+                                <div class="slide-icon-ring slide-icon-ring-logo">
+                                    <img src="logo.png" alt="Clock It" class="slide-logo-img">
+                                </div>
+                            </div>
+                            <h1 class="slide-headline">Your story<br>starts today.</h1>
+                            <p class="slide-body">Join thousands already documenting their lives with Clock It. Your memories deserve a home.</p>
+                        </div>
+                    </div>
                 </div>
+
+                <!-- Slide Dots -->
+                <div class="slide-dots" id="slide-dots">
+                    <span class="slide-dot active" onclick="goToSlide(0)"></span>
+                    <span class="slide-dot" onclick="goToSlide(1)"></span>
+                    <span class="slide-dot" onclick="goToSlide(2)"></span>
+                    <span class="slide-dot" onclick="goToSlide(3)"></span>
+                </div>
+
+                <!-- Auth Section — always visible at bottom -->
+                <div class="onboarding-auth glass-card" id="onboarding-auth">
+                    <!-- Default: CTA buttons -->
+                    <div id="auth-cta" class="auth-section">
+                        <button class="glass-button primary-btn auth-primary-btn" onclick="showAuthForm('signup')">
+                            Get Started
+                        </button>
+                        <button class="glass-button auth-login-link" onclick="showAuthForm('login')">
+                            Already have an account? <strong>Log In</strong>
+                        </button>
+                    </div>
+
+                    <!-- Sign Up Form -->
+                    <div id="auth-signup" class="auth-section hidden">
+                        <div class="auth-form-header">
+                            <button class="auth-back-btn" onclick="showAuthForm('cta')">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                            </button>
+                            <h3 class="auth-form-title">Create Account</h3>
+                        </div>
+                        <div id="google-signin-button-signup"></div>
+                        <div class="auth-divider"><span>or</span></div>
+                        <button class="glass-button secondary-btn" id="continue-local-btn">
+                            Continue without account
+                        </button>
+                        <p class="auth-fine-print">By continuing, you agree to our Terms & Privacy Policy.</p>
+                    </div>
+
+                    <!-- Log In Form -->
+                    <div id="auth-login" class="auth-section hidden">
+                        <div class="auth-form-header">
+                            <button class="auth-back-btn" onclick="showAuthForm('cta')">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                            </button>
+                            <h3 class="auth-form-title">Welcome Back</h3>
+                        </div>
+                        <div id="google-signin-button-login"></div>
+                        <p class="auth-fine-print" style="margin-top: 1rem;">We'll restore all your memories from the cloud.</p>
+                    </div>
+                </div>
+
+                <!-- Skip link -->
+                <button class="onboarding-skip" id="onboarding-skip" onclick="skipToAuth()">Skip</button>
             </div>
         </div>
 
@@ -59,13 +163,16 @@
                 <div class="app-header glass-card">
                     <div class="header-content">
                         <img src="logo.png" alt="Clock It" class="header-logo">
-                        <button class="glass-button icon-btn hamburger-btn" onclick="toggleSidebar()">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                <line x1="3" y1="12" x2="21" y2="12"></line>
-                                <line x1="3" y1="6" x2="21" y2="6"></line>
-                                <line x1="3" y1="18" x2="21" y2="18"></line>
-                            </svg>
-                        </button>
+                        <div class="header-right">
+                            <div id="user-avatar" class="user-avatar" onclick="toggleSidebar()"></div>
+                            <button class="glass-button icon-btn hamburger-btn" onclick="toggleSidebar()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -445,8 +552,8 @@
                                 <div class="limit-bar">
                                     <div id="upload-progress-bar" class="limit-bar-fill"></div>
                                 </div>
-                                <p id="upload-limit-text" class="limit-text">0 of 3 uploads this month</p>
-                                <p class="limit-note">Free tier: 3 uploads per month. Upgrade to Premium for unlimited uploads.</p>
+                                <p id="upload-limit-text" class="limit-text">0 of 30 uploads this month</p>
+                                <p class="limit-note">Free tier: 30 uploads per month. Upgrade to Premium for unlimited uploads.</p>
                             </div>
                         </div>
                     </div>
@@ -578,6 +685,48 @@
     </div>
 
     <div id="toast" class="toast glass-card hidden"></div>
+
+    <!-- Caption/Journal Modal -->
+    <div id="caption-modal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeCaptionModal()"></div>
+        <div class="modal-content glass-card">
+            <div class="modal-header">
+                <h3>📝 Add Your Story</h3>
+                <button class="glass-button icon-btn" onclick="closeCaptionModal()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="modal-body">
+                <img id="caption-preview-img" class="caption-preview" src="" alt="Photo preview">
+                
+                <p style="opacity: 0.8; margin-bottom: 0.5rem;">Tell the story behind this moment (optional)</p>
+                
+                <textarea 
+                    id="caption-textarea" 
+                    class="caption-textarea" 
+                    placeholder="What made this moment special? Where were you? Who were you with? How did you feel?&#10;&#10;Your story, unlimited characters..."
+                    maxlength="10000"
+                ></textarea>
+                
+                <div class="caption-char-count">
+                    <span id="caption-char-count">0</span> / 10,000 characters
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="glass-button secondary-btn" onclick="skipCaption()">
+                    Skip
+                </button>
+                <button class="glass-button primary-btn" onclick="saveCaption()">
+                    Save Moment
+                </button>
+            </div>
+        </div>
+    </div>
 
     <script src="app.js"></script>
 </body>
